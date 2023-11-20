@@ -11,6 +11,6 @@ public class Main
         obj.sorting_arr();*/
 
         laba2 obj = new laba2();
-        obj.meat();
+        obj.mat();
     }
 }
