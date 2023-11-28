@@ -2,6 +2,9 @@ import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Scanner;
 
 
 public class laba2
@@ -41,8 +44,7 @@ public class laba2
             }
         }
     }
-    public void mat()
-    {
+    public void mat() {
         textField.setBounds(50,500,200,30);
         JButton t1 = new JButton("РАБоТЯГИ");
         t1.setBounds(50,50,200,40);
@@ -75,7 +77,14 @@ public class laba2
                 t2_rows_count++;
             }
         });
-        menuItemRemove.addActionListener(e -> model.removeRow(currentRow));
+        menuItemRemove.addActionListener(e -> {
+            try {
+                model.removeRow(currentRow);
+            } catch (ArrayIndexOutOfBoundsException exc)
+            {
+                JOptionPane.showMessageDialog(a, "Не выбран элемент для удаления","Erorr",JOptionPane.WARNING_MESSAGE);
+            }
+        });
 
 
         menuItemRemoveAll.addActionListener(e -> {
@@ -86,23 +95,6 @@ public class laba2
         });
 
         //кнопки переключения таблиц
-        JButton addtot = new JButton("Добавить");
-        addtot.setBounds(1050,800,200,40);
-        addtot.addActionListener(e ->
-        {
-            if (is_t1)
-            {
-                model.insertRow(table.getRowCount(),new Object[]{(t1_rows_count + 1)});
-                t1_rows_count++;
-            }
-            else
-            {
-                model.insertRow(table.getRowCount(),new Object[]{(t2_rows_count + 1)});
-                t2_rows_count++;
-            }
-        }
-
-        );
 
         //переключение таблиц
         t1.addActionListener(e -> {
@@ -112,7 +104,6 @@ public class laba2
             model = new DefaultTableModel(datatable, columnsHeadertable);
             table.setModel(model);
             sp1.setBounds(50, 120,800,150);
-            addtot.setText("Добавить работягу");
             is_t1 = true;
         });
 
@@ -123,15 +114,47 @@ public class laba2
             model = new DefaultTableModel(datatable, columnsHeadertable);
             table.setModel(model);
             sp1.setBounds(50, 120,1400,150);
-            addtot.setText("Добавить заказ");
             is_t1 = false;
         });
         t1.doClick();
 
-        a.add(addtot);
+        JButton save_to_file = new JButton("Save to file");
+        save_to_file.setBounds(490,50,200,40);
+        JButton read_from_file = new JButton("Read from file");
+        read_from_file.setBounds(710,50,200,40);
+        save_to_file.addActionListener(e -> {
+
+            String fileName;
+            if (is_t1) {
+                fileName = "db1.txt";
+            }
+            else
+                fileName = "db2.txt";
+
+            try(FileWriter writer = new FileWriter(fileName))
+            {
+                for (int i = 0; i < model.getRowCount(); i++) {
+                    for (int j = 0; j < model.getColumnCount(); j++) {
+                        writer.write(String.valueOf(model.getValueAt(i,j)));
+                        writer.write('~');
+                    }
+                    writer.write('\n');
+                }
+                writer.flush();
+            } catch (IOException exs) {
+                JOptionPane.showMessageDialog(a, "Внимание", "Спасибо за внимание", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+
+
+
+
+
         a.add(sp1);
         a.add(t1);
         a.add(t2);
+        a.add(save_to_file);
+        a.add(read_from_file);
         a.add(textField);
         int width = 1600;
         int height = 900;
