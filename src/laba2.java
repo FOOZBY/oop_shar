@@ -2,8 +2,7 @@ import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.Scanner;
 
 
@@ -44,6 +43,74 @@ public class laba2
             }
         }
     }
+    public void rff()
+    {
+        String fileName;
+        int col_amount;
+        if (is_t1) {
+            fileName = "db1.txt";
+            col_amount = 3;
+        }
+        else {
+            fileName = "db2.txt";
+            col_amount = 8;
+        }
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName)))
+        {
+            String line = reader.readLine();
+            while (line != null) {
+                String row[] = new String[col_amount];
+                String word="";
+                int col = 0;
+                for (int j = 0; j < line.length(); j++) {
+                    while (line.charAt(j) != '~') {
+                        word+=line.charAt(j);
+                        j++;
+                    }
+                    row[col] = word;
+                    word = "";
+                    col++;
+                }
+                model.insertRow(model.getRowCount(), row);
+                // read next line
+                line = reader.readLine();
+            }
+            System.out.println("файл кончился");
+            reader.close();
+        }
+        catch (IOException exc)
+        {
+            System.out.println("неверно указано имя файла");
+        }
+
+    }
+
+    public void stf()
+    {
+        String fileName;
+        if (is_t1) {
+            fileName = "db1.txt";
+        }
+        else
+            fileName = "db2.txt";
+
+        try(FileWriter writer = new FileWriter(fileName))
+        {
+            for (int i = 0; i < model.getRowCount(); i++) {
+                for (int j = 0; j < model.getColumnCount(); j++) {
+                    writer.write(String.valueOf(model.getValueAt(i,j)));
+                    writer.write('~');
+                }
+                if (i != model.getRowCount()-1)
+                    writer.write('\n');
+            }
+            writer.flush();
+        } catch (IOException exs) {
+            JOptionPane.showMessageDialog(a, "Внимание", "Спасибо за внимание", JOptionPane.INFORMATION_MESSAGE);
+        }
+
+    }
+
     public void mat() {
         textField.setBounds(50,500,200,30);
         JButton t1 = new JButton("РАБоТЯГИ");
@@ -105,6 +172,7 @@ public class laba2
             table.setModel(model);
             sp1.setBounds(50, 120,800,150);
             is_t1 = true;
+            rff();
         });
 
         t2.addActionListener(e -> {
@@ -115,40 +183,17 @@ public class laba2
             table.setModel(model);
             sp1.setBounds(50, 120,1400,150);
             is_t1 = false;
+            rff();
         });
         t1.doClick();
 
         JButton save_to_file = new JButton("Save to file");
         save_to_file.setBounds(490,50,200,40);
+        save_to_file.addActionListener(e -> stf());
+
         JButton read_from_file = new JButton("Read from file");
         read_from_file.setBounds(710,50,200,40);
-        save_to_file.addActionListener(e -> {
-
-            String fileName;
-            if (is_t1) {
-                fileName = "db1.txt";
-            }
-            else
-                fileName = "db2.txt";
-
-            try(FileWriter writer = new FileWriter(fileName))
-            {
-                for (int i = 0; i < model.getRowCount(); i++) {
-                    for (int j = 0; j < model.getColumnCount(); j++) {
-                        writer.write(String.valueOf(model.getValueAt(i,j)));
-                        writer.write('~');
-                    }
-                    writer.write('\n');
-                }
-                writer.flush();
-            } catch (IOException exs) {
-                JOptionPane.showMessageDialog(a, "Внимание", "Спасибо за внимание", JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-
-
-
-
+        read_from_file.addActionListener(e -> rff());
 
         a.add(sp1);
         a.add(t1);
