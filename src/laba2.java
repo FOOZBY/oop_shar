@@ -12,6 +12,11 @@ import javax.xml.transform.stream.StreamResult;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+
 
 public class laba2
 {
@@ -74,11 +79,12 @@ public class laba2
         }
 
     }
-
+    List<String> test_arr = new ArrayList<>();
     public void rff() {
+
         try {
             System.out.println("засыпаю5...");
-            Thread.sleep(5000);
+            Thread.sleep(0);
             System.out.println("...просыпаюсь");
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -98,6 +104,7 @@ public class laba2
                 while (line != null) {
                     String[] row = new String[col_amount];
                     StringBuilder word = new StringBuilder();
+                    test_arr.add(line);
                     int col = 0;
                     for (int j = 0; j < line.length(); j++) {
                         while (line.charAt(j) != '~') {
@@ -108,7 +115,10 @@ public class laba2
                         word = new StringBuilder();
                         col++;
                     }
+
+                    //test_arr.add(row);
                     model.insertRow(model.getRowCount(), row);
+
                     // read next line
                     line = reader.readLine();
                 }
@@ -339,9 +349,15 @@ public class laba2
     }
 
     public void menu_remove_all(){
-        int rowCount = table.getRowCount();
-        for (int i = 0; i < rowCount; i++) {
-            model.removeRow(0);
+        try {
+            int rowCount = table.getRowCount();
+            for (int i = 0; i < rowCount; i++) {
+                model.removeRow(0);
+            }
+        }
+        catch (NullPointerException exc)
+        {
+            return;
         }
     }
 
