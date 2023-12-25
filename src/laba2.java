@@ -12,10 +12,9 @@ import javax.xml.transform.stream.StreamResult;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 
 public class laba2
@@ -25,11 +24,11 @@ public class laba2
     public String[][] datatable;
     public DefaultTableModel model;
     public JTable table;
-    private final JTextField textField = new JTextField(20);
+    public JLabel label = new JLabel();
 
     private boolean is_t1 = true;
 
-    JFrame a = new JFrame("FOOZBY и шоколадный сервис");
+    JFrame a = new JFrame("Где-то стучит, посмотри, а?");
     int currentRow;
 
     public class TableMouseListener extends MouseAdapter {
@@ -71,14 +70,200 @@ public class laba2
                 case 3:
                     stx();
                     break;
+                case 4:
+                    try {
+                        read_table_from_db();
+                    } catch (ClassNotFoundException | SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                    break;
+                case 5:
+                    try {
+                        save_table_to_db();
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                    break;
+                case 6:
+                    show_orders_per_month();
+                    break;
                 default:
-                    System.out.println("лошара, не та цифра");
+                    System.out.println("не та цифра");
                     break;
             }
             System.out.println("поточек завершился");
         }
 
     }
+
+    private void show_orders_per_month() {
+        JFrame frame = new JFrame("заказы за месяц");
+
+        JLabel label = new JLabel("Введите месяц и год в виде мм.гггг: ");
+        label.setBounds(20, 20, 230, 20);
+
+        JTextField textField = new JTextField();
+        textField.setBounds(235,20,80,20);
+
+        JButton submit =new JButton("Ввести");
+        submit.setBounds(330,15,100,30);
+        submit.addActionListener(e ->{
+            String month="",year="",text;
+            text = textField.getText();
+            if (!text.isEmpty()) {
+                month += text.charAt(0);
+                month += text.charAt(1);
+                year += text.charAt(3);
+                year += text.charAt(4);
+                year += text.charAt(5);
+                year += text.charAt(6);
+
+                JScrollPane sp1;
+                String[] columnsHeadertable;
+                String[][] datatable;
+                DefaultTableModel model;
+                JTable table;
+                columnsHeadertable = new String[]{"ID", "Дата", "IDр", "ФИОк", "Марка", "Год выпуска", "Пробег", "Неисправность"};
+                datatable = new String[][]{};
+                model = new DefaultTableModel(datatable, columnsHeadertable);
+                table = new JTable(model);
+                sp1 = new JScrollPane(table);
+                table.setModel(model);
+                sp1.setBounds(50, 120, 1300, 150);
+                TableColumn column = null;
+                column = table.getColumnModel().getColumn(0);
+                column.setMaxWidth(30);
+                frame.add(sp1);
+
+                try {
+                    Class.forName("com.mysql.cj.jdbc.Driver");
+                } catch (ClassNotFoundException ex) {
+                    throw new RuntimeException(ex);
+                }
+                ResultSet resultSet = null;
+                try {
+                    resultSet = statement.executeQuery("SELECT * FROM orders WHERE MONTH(date) = " + month + " and YEAR(date) = " + year);
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+                String[] row = new String[8];
+                while (true) {
+                    try {
+                        if (!resultSet.next()) break;
+                    } catch (SQLException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                    for (int i = 0; i < 8; i++) {
+                        try {
+                            row[i] = resultSet.getString(i + 1);
+                        } catch (SQLException ex) {
+                            throw new RuntimeException(ex);
+                        }
+                    }
+                    model.insertRow(model.getRowCount(), row);
+                }
+            }
+        });
+
+        frame.add(submit);
+        frame.add(textField);
+        frame.add(label);
+        frame.setBounds(200, 250, 1400, 500);
+        frame.setDefaultCloseOperation(frame.DISPOSE_ON_CLOSE);
+        frame.setLayout(null);
+        frame.setVisible(true);
+    }
+
+    public static final String USER_NAME = "root";
+    public static final String PASSWORD = "root";
+    public static final String URL = "jdbc:mysql://localhost:3306/mysql";
+
+    public static Statement statement;
+    public static Connection connection;
+
+    static {
+        try{
+            connection = DriverManager.getConnection(URL,USER_NAME,PASSWORD);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    static {
+        try{
+            statement = connection.createStatement();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public void read_table_from_db() throws ClassNotFoundException, SQLException {
+        menu_remove_all();
+        String tableName;
+        int col_amount;
+        if (is_t1) {
+            tableName = "Employees";
+            col_amount = 3;
+        } else {
+            tableName = "Orders";
+            col_amount = 8;
+        }
+        Class.forName("com.mysql.cj.jdbc.Driver");
+        ResultSet resultSet = statement.executeQuery("SELECT * FROM " + tableName);
+        String[] row = new String[col_amount];
+        while (resultSet.next()) {
+            for (int i = 0; i < col_amount; i++)
+                row[i] = resultSet.getString(i+1);
+            model.insertRow(model.getRowCount(), row);
+        }
+    }
+
+
+    private void save_table_to_db() throws SQLException {
+        String tableName;
+        if (is_t1)
+            tableName = "employees";
+        else
+            tableName = "orders";
+        statement.executeUpdate("DROP TABLE "+tableName);
+        System.out.println("table dropped");
+
+
+        if (is_t1) {
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS " +tableName+ "(id int auto_increment primary key,name varchar(50) not null,spec varchar(50) not null)");
+            for (int i = 0; i < model.getRowCount(); i++) {
+                statement.executeUpdate(String.format("INSERT INTO %s VALUE(%s, '%s', '%s');",
+                        tableName,
+                        model.getValueAt(i, 0),
+                        model.getValueAt(i, 1),
+                        model.getValueAt(i, 2)));
+            }
+            System.out.println("table 1 saved");
+        }else {
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS "+tableName+" ("+
+                    "id int auto_increment primary key,"+
+                    "date DATE,"+
+                    "id_empl int,"+
+                    "name varchar(50) not null,"+
+                    "car varchar(50) not null,"+
+                    "car_year int,"+
+                    "mileage int,"+
+                    "issue varchar(50) not null)");
+            for (int i = 0; i < model.getRowCount(); i++) {
+                statement.executeUpdate(String.format("INSERT INTO %s VALUE(%s, '%s', '%s', '%s', '%s', '%s', '%s', '%s');",
+                        tableName,
+                        model.getValueAt(i, 0),
+                        model.getValueAt(i, 1),
+                        model.getValueAt(i, 2),
+                        model.getValueAt(i, 3),
+                        model.getValueAt(i, 4),
+                        model.getValueAt(i, 5),
+                        model.getValueAt(i, 6),
+                        model.getValueAt(i, 7)));
+            }
+            System.out.println("table 2 saved");
+        }
+        System.out.println("saved!");
+    }
+
     List<String> test_arr = new ArrayList<>();
     public void rff() {
 
@@ -362,10 +547,7 @@ public class laba2
     }
 
     public void mat() {
-
-        //threads[1]
-        textField.setBounds(50,500,200,30);
-
+        a.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         //кнопки переключения таблиц
         JButton t1 = new JButton("Специалисты");
@@ -403,7 +585,30 @@ public class laba2
             TableColumn column = null;
             column = table.getColumnModel().getColumn(0);
             column.setMaxWidth(30);
+            ResultSet resultSet;
+            try {
+                resultSet = statement.executeQuery("SELECT COUNT(*) FROM employees");
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+            String count;
+            try {
+                resultSet.next();
+                count = resultSet.getString(1);
+                System.out.println(count);
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+
+            label.setText("Количество записей в таблице: " + count);
+            label.setBounds(1000, 300, 330, 20);
             is_t1 = true;
+
+            try {
+                read_table_from_db();
+            } catch (ClassNotFoundException | SQLException ex) {
+                throw new RuntimeException(ex);
+            }
         });
 
         t2.addActionListener(e -> {
@@ -411,11 +616,35 @@ public class laba2
             datatable = new String[][]{};
             model = new DefaultTableModel(datatable, columnsHeadertable);
             table.setModel(model);
-            sp1.setBounds(50, 120,1200,150);
+            sp1.setBounds(50, 120, 1300, 150);
             TableColumn column = null;
             column = table.getColumnModel().getColumn(0);
             column.setMaxWidth(30);
+
+            ResultSet resultSet;
+            try {
+                resultSet = statement.executeQuery("SELECT COUNT(*) FROM orders");
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+            String count;
+            try {
+                resultSet.next();
+                count = resultSet.getString(1);
+                System.out.println(count);
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+            label.setText("Количество записей в таблице: " + count);
+            label.setBounds(1000, 300, 330, 20);
+
             is_t1 = false;
+
+            try {
+                read_table_from_db();
+            } catch (ClassNotFoundException | SQLException ex) {
+                throw new RuntimeException(ex);
+            }
         });
         t1.doClick();
 
@@ -457,6 +686,37 @@ public class laba2
                 JOptionPane.showMessageDialog(a, "Loading. . .", "Wait", JOptionPane.INFORMATION_MESSAGE);
         });
 
+        JButton save_to_db = new JButton("Save to Database");
+        save_to_db.setBounds(50,300,200,40);
+        save_to_db.addActionListener(e -> {
+            choice = 5;
+            NewThread thread = new NewThread();
+            thread.start();
+            while (thread.isAlive())
+                JOptionPane.showMessageDialog(a, "Loading. . .", "Wait", JOptionPane.INFORMATION_MESSAGE);
+        });
+
+        JButton read_from_db = new JButton("Read from Database");
+        read_from_db.setBounds(270,300,200,40);
+        read_from_db.addActionListener(e -> {
+            choice = 4;
+            NewThread thread = new NewThread();
+            thread.start();
+            while (thread.isAlive())
+                JOptionPane.showMessageDialog(a, "Loading. . .", "Wait", JOptionPane.INFORMATION_MESSAGE);
+        });
+
+
+        JButton show_orders_per_month = new JButton("Show orders per month");
+        show_orders_per_month.setBounds(490,300,200,40);
+        show_orders_per_month.addActionListener(e -> {
+            choice = 6;
+            NewThread thread = new NewThread();
+            thread.start();
+        });
+
+
+
         a.add(sp1);
         a.add(t1);
         a.add(t2);
@@ -464,10 +724,13 @@ public class laba2
         a.add(read_from_file);
         a.add(save_to_xml);
         a.add(read_from_xml);
-        a.add(textField);
+        a.add(save_to_db);
+        a.add(read_from_db);
+        a.add(show_orders_per_month);
+        a.add(label);
         int width = 1400;
         int height = 900;
-        a.setSize(width, height);
+        a.setBounds(100,100,width, height);
         a.setLayout(null);
         a.setVisible(true);
     }
